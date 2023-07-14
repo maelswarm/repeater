@@ -13,5 +13,5 @@ Note: Only append new commands to the file.
 
 ## Run
 ```
-make; repeater <file>;
+make; repeater <char *file> <int max_process>;
 ```

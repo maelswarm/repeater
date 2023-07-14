@@ -56,7 +56,7 @@ char *trim(char *str)
         *str = '\0';
     else if (str + len - 1 != endp)
         *(endp + 1) = '\0';
-    
+
     endp = str;
     if (frontp != str)
     {
@@ -116,75 +116,69 @@ int main(int argc, const char *argv[])
     a = 0;
     b = 0;
     signal(SIGINT, ctrlc_handler);
-    int i = 1;
-    for (int i = 0; i < argc; ++i)
+    strcpy(filename, argv[1]);
+    int y = atoi(argv[2]);
+    pings = (int *)malloc(y * sizeof(int));
+    pthreads = (pthread_t *)malloc(y * sizeof(pthread_t));
+    for (int j = 0; j < y; ++j)
     {
-        if (strcmp(argv[i], "nmap") == 0)
+        pings[j] = -1;
+    }
+    pingsidx = 0;
+    while (true)
+    {
+        const char t[3] = ";";
+        char buf[10000];
+        listfd = fopen(filename, "r+");
+        int cnt = 0;
+        b = 0;
+        for (int c = getc(listfd); c != EOF; c = getc(listfd))
         {
-        }
-        else if (strcmp(argv[i], "exec") == 0)
-        {
-            ++i;
-            strcpy(filename, argv[i]);
-            int y = atoi(argv[i + 1]);
-            pings = (int *)malloc(y * sizeof(int));
-            pthreads = (pthread_t *)malloc(y * sizeof(pthread_t));
-            for (int j = 0; j < y; ++j)
+            if (c == '\n')
             {
-                pings[i] = -1;
-            }
-            pingsidx = 0;
-            ++i;
-            while (true)
-            {
-                const char t[3] = ";";
-                char buf[10000];
-                listfd = fopen(filename, "r+");
-                int cnt = 0;
-                b = 0;
-                for (int c = getc(listfd); c != EOF; c = getc(listfd))
-                {
-                    if (c == '\n')
-                    {
-                        cnt = cnt + 1;
-                    }
-                }
-                if (cnt < a)
-                {
-                    fclose(listfd);
-                    sleep(1);
-                    continue;
-                }
-                rewind(listfd);
-                printf("%i %i\n", cnt, a);
-                while (fgets(buf, 10000, listfd) != NULL)
-                {
-                    if (a > b)
-                    {
-                        ++b;
-                        continue;
-                    }
-                    if (a >= cnt)
-                    {
-                        break;
-                    }
-                    int t;
-                    if ((t = pthread_create(&pthreads[pthreadsidx], NULL, exec_target, (char *)buf)))
-                    {
-                        printf("Thread creation failed: %d\n", t);
-                    } else {
-                        printf("%s\n", buf);
-                    }
-                    pthread_join(pthreads[pthreadsidx], NULL);
-                    ++pthreadsidx;
-                    ++b;
-                    ++a;
-                    sleep(1);
-                }
-                fclose(listfd);
-                sleep(1);
+                cnt = cnt + 1;
             }
         }
+        if (cnt < a)
+        {
+            fclose(listfd);
+            sleep(1);
+            continue;
+        }
+        if(a > y) {
+            printf("Max processes met!\n");
+            sleep(60);
+            continue;
+        }
+        rewind(listfd);
+        while (fgets(buf, 10000, listfd) != NULL)
+        {
+            if (a > b)
+            {
+                ++b;
+                continue;
+            }
+            if (a >= cnt)
+            {
+                break;
+            }
+            int t;
+            if ((t = pthread_create(&pthreads[pthreadsidx], NULL, exec_target, (char *)buf)))
+            {
+                printf("Thread creation failed: %d\n", t);
+            }
+            else
+            {
+                printf("%s\n", buf);
+            }
+            pthread_join(pthreads[pthreadsidx], NULL);
+            ++pthreadsidx;
+            ++b;
+            ++a;
+            sleep(1);
+        }
+        fclose(listfd);
+        sleep(1);
     }
     return 0;
 }
